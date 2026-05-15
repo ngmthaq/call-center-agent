@@ -42,7 +42,7 @@ describe('agent module — import shape', () => {
     process.env.AGENT_NAME = 'assistant';
 
     // Act
-    const act = async (): Promise<unknown> => await import('./agent.js');
+    const act = async (): Promise<unknown> => await import('./agent');
 
     // Assert
     await expect(act()).resolves.toBeDefined();
@@ -53,7 +53,7 @@ describe('agent module — import shape', () => {
     process.env.AGENT_NAME = 'assistant';
 
     // Act
-    const mod = await import('./agent.js');
+    const mod = await import('./agent');
 
     // Assert
     expect(typeof mod.default).toBe('object');
@@ -65,7 +65,7 @@ describe('agent module — import shape', () => {
     process.env.AGENT_NAME = 'assistant';
 
     // Act
-    const mod = await import('./agent.js');
+    const mod = await import('./agent');
 
     // Assert
     expect(mod.agentName).toBe('assistant');
@@ -76,7 +76,7 @@ describe('agent module — import shape', () => {
     delete process.env.AGENT_NAME;
 
     // Act
-    const mod = await import('./agent.js');
+    const mod = await import('./agent');
 
     // Assert
     expect(mod.agentName).toBe('');

@@ -1,8 +1,8 @@
 import { type JobContext, defineAgent } from '@livekit/agents';
 import { RoomEvent, type RemoteParticipant } from '@livekit/rtc-node';
 
-import { loadConfig } from './config.js';
-import { createLogger } from './logger.js';
+import { loadConfig } from './config';
+import { createLogger } from './logger';
 
 export const agentName: string = (process.env.AGENT_NAME ?? '').trim();
 
@@ -15,10 +15,7 @@ export const agent = defineAgent({
     const jobId = ctx.job.id;
     const roomName = room.name ?? ctx.job.room?.name ?? 'unknown';
 
-    log.info(
-      { jobId, roomName, agentName: config.agentName },
-      'agent entrypoint started',
-    );
+    log.info({ jobId, roomName, agentName: config.agentName }, 'agent entrypoint started');
 
     room.on(RoomEvent.ParticipantConnected, (participant: RemoteParticipant) => {
       log.info(
@@ -44,8 +41,9 @@ export const agent = defineAgent({
       );
     });
 
-    ctx.addShutdownCallback(async () => {
+    ctx.addShutdownCallback(() => {
       log.info({ jobId, roomName }, 'agent entrypoint shutting down');
+      return Promise.resolve();
     });
 
     await ctx.connect();

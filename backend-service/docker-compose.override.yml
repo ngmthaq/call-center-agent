@@ -1,0 +1,40 @@
+# Compose v2 — no `version:` key (Docker ignores it on v2 anyway).
+#
+# Local dev overlay. Compose auto-merges this file ONLY when no `-f` is
+# passed (`docker compose up`), so the production path
+# (`docker compose -f docker-compose.yml ...`) is byte-for-byte unaffected.
+#
+# Overrides ONLY the `backend` service. `redis`, `mariadb`, named volumes,
+# `ports`, `env_file`, and `depends_on` are intentionally NOT redeclared —
+# Compose inherits them verbatim from docker-compose.yml, so backend still
+# waits for redis/mariadb healthy and loads secrets from `.env`.
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      # Build the `development` stage instead of the default `runner`, so the
+      # image carries the full dev dep tree + @nestjs/cli for `nest --watch`.
+      target: development
+    # Explicit dev command (also the stage's CMD) — kept here so the intent
+    # is obvious when reading the dev overlay in isolation.
+    command: ["yarn", "start:dev"]
+    environment:
+      # Dev tooling (nest --watch, verbose logging) keys off this.
+      NODE_ENV: development
+    volumes:
+      # Bind-mount the host source so edits trigger an in-container Nest
+      # recompile/restart with no image rebuild. Compiled `dist/` is
+      # intentionally NOT masked — it writes back to the host (gitignored),
+      # which the user explicitly approved.
+      - .:/app
+      # Anonymous volume masks the host's `node_modules` so the image-built
+      # Alpine/musl modules + generated Prisma engine survive the bind-mount
+      # above (a host `node_modules` would otherwise shadow them).
+      - /app/node_modules
+    healthcheck:
+      # The cold first `nest --watch` compile can exceed the prod 30s
+      # start_period and flap the container unhealthy. Disabled for dev
+      # only; the prod healthcheck in docker-compose.yml is untouched.
+      disable: true

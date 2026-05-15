@@ -1,6 +1,6 @@
 import { pino, type Logger } from 'pino';
 
-import type { LogLevel } from './config.js';
+import type { LogLevel } from './config';
 
 const REDACT_PATHS = [
   'livekitApiSecret',

@@ -1,0 +1,42 @@
+# Build context exclusions for the agent-worker image.
+#
+# Anything listed here is NOT sent to the docker daemon. Keeping the build
+# context lean speeds up `docker build` and prevents host-side state (local
+# secrets, IDE configs, OS junk) from leaking into image layers.
+
+# Dependencies — reinstalled deterministically inside the builder stage from
+# `package.json` + `yarn.lock`. Copying the host's tree would slow the build
+# AND risk mixing host-architecture binaries (e.g. macOS) into a Linux image.
+node_modules/
+
+# Compiled output — produced inside the builder stage. Copying the host's
+# `dist/` would mask stale build artifacts behind a fresh image.
+dist/
+
+# Test coverage reports — runtime artefact, never needed at build time.
+coverage/
+
+# Runtime secrets — `.env` must never enter an image layer. Backups
+# (`.env.bak.*`) are equally sensitive.
+.env
+.env.*
+.env.bak.*
+
+# Log files — host-side debug noise.
+logs/
+*.log
+
+# VCS metadata — leaks history (and any unredacted secrets) into layers.
+.git/
+
+# Editor / IDE / OS scratch.
+.idea/
+.vscode/
+.DS_Store
+
+# Test sources — production images do not run tests. The Jest suite stays
+# on the host (and CI), not inside the runtime image.
+src/**/*.spec.ts
+
+# Operator-facing docs — image runs without them.
+README.md

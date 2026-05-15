@@ -1,0 +1,32 @@
+# Compose v2 — no `version:` key (Docker ignores it on v2 anyway).
+#
+# A standalone single-service stack for the LiveKit Agents worker. This is
+# INDEPENDENT of the `backend-service/` and `livekit-server/` compose
+# projects: separate Docker project, separate default network, no shared
+# named volumes. The worker reaches LiveKit purely over the network using
+# the credentials/URL in `.env`, not via inter-container links here.
+#
+# Secrets come from `.env`, created from `.env.example` (never committed).
+
+services:
+  agent-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    # No `ports:` — the worker opens an OUTBOUND WebSocket to LIVEKIT_URL and
+    # never listens on a host port, so there is no TCP/HTTP surface to publish.
+    # No `depends_on:` — this stack has no local dependencies (no DB/cache);
+    # LiveKit is reached over the network via LIVEKIT_URL.
+    # No `healthcheck:` — INTENTIONALLY OMITTED. A LiveKit agent worker
+    # exposes no HTTP/TCP probe endpoint; worker liveness is tracked
+    # server-side by LiveKit over the agents protocol (registration +
+    # heartbeats). A Docker healthcheck here would have nothing to probe.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+# No named volumes — the worker holds no persistent local state.

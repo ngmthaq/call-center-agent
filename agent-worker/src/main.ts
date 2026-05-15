@@ -1,10 +1,10 @@
 import { ServerOptions, cli } from '@livekit/agents';
-import { fileURLToPath } from 'node:url';
+import path from 'node:path';
 
-import { loadConfig, WorkerConfig } from './config.js';
-import { createLogger } from './logger.js';
+import { loadConfig, WorkerConfig } from './config';
+import { createLogger } from './logger';
 
-const AGENT_MODULE_URL = new URL('./agent.js', import.meta.url);
+const AGENT_MODULE_PATH = path.resolve(__dirname, 'agent.js');
 
 function bootstrap(): void {
   const log = createLogger('agent-worker:main');
@@ -12,7 +12,7 @@ function bootstrap(): void {
   const childLog = createLogger('agent-worker:main', { level: config.logLevel });
 
   const options = new ServerOptions({
-    agent: fileURLToPath(AGENT_MODULE_URL),
+    agent: AGENT_MODULE_PATH,
     agentName: config.agentName,
     wsURL: config.livekitUrl,
     apiKey: config.livekitApiKey,

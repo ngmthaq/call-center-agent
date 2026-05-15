@@ -16,7 +16,7 @@ agent-worker/
   package.json
   tsconfig.json
   jest.config.cjs
-  .eslintrc.cjs
+  eslint.config.mjs
   .prettierrc
   .env.example
   .gitignore
@@ -62,8 +62,36 @@ npm run start
 
 `npm run start` runs the compiled `dist/main.js` in `start` (production) mode of the `@livekit/agents` CLI. Set `LIVEKIT_LOG_LEVEL` or the `LOG_LEVEL` env var to tune verbosity.
 
+## Docker
+
+A standalone single-service compose stack (independent of the `backend-service`
+and `livekit-server` stacks). Run everything from `agent-worker/`:
+
+```bash
+cp .env.example .env   # then fill in real LIVEKIT_* values
+docker compose build
+docker compose up
+```
+
+A populated `.env` is required first — `docker compose up` will start the
+worker with empty credentials and it will fail to register otherwise.
+
+`docker compose down` sends SIGTERM, which tini (PID 1) forwards to Node for a
+clean LiveKit worker drain.
+
+There are deliberately **no published ports and no healthcheck**. The worker
+opens an OUTBOUND WebSocket to `LIVEKIT_URL` and never listens on a host port,
+so there is nothing to publish or probe; worker liveness is tracked
+server-side by LiveKit over the agents protocol.
+
+`host.docker.internal` caveat: when pointing at a host-side LiveKit dev server,
+`LIVEKIT_URL=ws://localhost:7880` will NOT resolve from inside the container
+(`localhost` is the container itself). Use
+`LIVEKIT_URL=ws://host.docker.internal:7880` (macOS/Windows) or attach the
+worker to the `livekit-server` compose network instead.
+
 ## Notes
 
 - This package is a standalone Node application at the workspace root. It is not part of a monorepo (no workspaces).
-- Module system: ESM (`"type": "module"`). `@livekit/agents` v1.x ships as ESM and the documented `cli.runApp` pattern uses `import.meta.url` via `fileURLToPath`.
+- Module system: CommonJS (`"type": "commonjs"`, `tsconfig` `module: Node16` / `moduleResolution: Node16`). `@livekit/agents` v1.x is consumed via CJS interop; path resolution uses `__dirname`/`path.resolve` rather than `import.meta.url`/`fileURLToPath`.
 - Engines: Node `>=20`.

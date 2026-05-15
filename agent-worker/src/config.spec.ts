@@ -1,4 +1,4 @@
-import { loadConfig, WorkerConfigError, type WorkerConfig } from './config.js';
+import { loadConfig, WorkerConfigError, type WorkerConfig } from './config';
 
 type EnvOverrides = Record<string, string | undefined>;
 
@@ -74,37 +74,33 @@ describe('loadConfig — happy path', () => {
 });
 
 describe('loadConfig — missing required keys', () => {
-  it.each([
-    ['LIVEKIT_URL'],
-    ['LIVEKIT_API_KEY'],
-    ['LIVEKIT_API_SECRET'],
-    ['AGENT_NAME'],
-  ] as const)('throws WorkerConfigError when %s is undefined', (key) => {
-    // Arrange
-    const env = makeEnv({ [key]: undefined });
+  it.each([['LIVEKIT_URL'], ['LIVEKIT_API_KEY'], ['LIVEKIT_API_SECRET'], ['AGENT_NAME']] as const)(
+    'throws WorkerConfigError when %s is undefined',
+    (key) => {
+      // Arrange
+      const env = makeEnv({ [key]: undefined });
 
-    // Act
-    const act = (): WorkerConfig => loadConfig(env);
+      // Act
+      const act = (): WorkerConfig => loadConfig(env);
 
-    // Assert
-    expect(act).toThrow(WorkerConfigError);
-  });
+      // Assert
+      expect(act).toThrow(WorkerConfigError);
+    },
+  );
 
-  it.each([
-    ['LIVEKIT_URL'],
-    ['LIVEKIT_API_KEY'],
-    ['LIVEKIT_API_SECRET'],
-    ['AGENT_NAME'],
-  ] as const)('throws WorkerConfigError when %s is blank/whitespace', (key) => {
-    // Arrange
-    const env = makeEnv({ [key]: '   ' });
+  it.each([['LIVEKIT_URL'], ['LIVEKIT_API_KEY'], ['LIVEKIT_API_SECRET'], ['AGENT_NAME']] as const)(
+    'throws WorkerConfigError when %s is blank/whitespace',
+    (key) => {
+      // Arrange
+      const env = makeEnv({ [key]: '   ' });
 
-    // Act
-    const act = (): WorkerConfig => loadConfig(env);
+      // Act
+      const act = (): WorkerConfig => loadConfig(env);
 
-    // Assert
-    expect(act).toThrow(WorkerConfigError);
-  });
+      // Assert
+      expect(act).toThrow(WorkerConfigError);
+    },
+  );
 
   it('lists every missing key in the error message', () => {
     // Arrange
@@ -119,9 +115,7 @@ describe('loadConfig — missing required keys', () => {
     const act = (): WorkerConfig => loadConfig(env);
 
     // Assert
-    expect(act).toThrow(
-      /LIVEKIT_URL.*LIVEKIT_API_KEY.*LIVEKIT_API_SECRET.*AGENT_NAME/,
-    );
+    expect(act).toThrow(/LIVEKIT_URL.*LIVEKIT_API_KEY.*LIVEKIT_API_SECRET.*AGENT_NAME/);
   });
 });
 
