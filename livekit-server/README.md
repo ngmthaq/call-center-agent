@@ -94,6 +94,40 @@ docker compose up -d --force-recreate livekit
 
 `docker compose restart` is NOT sufficient — restart preserves the existing container's environment.
 
+## Troubleshooting — Production-readiness WARN: UDP receive buffer too small
+
+Symptom: shortly after `docker compose up -d`, `docker compose logs livekit` contains a WARN line such as:
+
+```text
+UDP receive buffer is too small for a production set-up
+```
+
+Root cause: at startup LiveKit reads the kernel-global UDP receive-buffer ceiling `net.core.rmem_max` and compares it against its 5 MB production threshold (`rtcconfig/rtc_unix.go:31` upstream); on most Linux distributions and on Docker Desktop's LinuxKit VM the default ceiling sits well below 5 MB (commonly `425984`), so the WARN fires.
+
+> **Do not** add `sysctls: net.core.rmem_max` (or `net.core.wmem_max`) to `docker-compose.yml`. runc's libcontainer namespaced-sysctl allowlist only permits `kernel.{shm,msg,sem}*`, `fs.mqueue.*`, and a curated `net.ipv4.*` / `net.ipv6.*` subset; `net.core.*` is a kernel-global sysctl and is rejected at container init, causing `runc create` to abort with the literal error `open sysctl net.core.rmem_max file: reopen fd 8: permission denied`. The container will not start. Tune the host kernel instead — see below.
+
+Linux production fix (run on the host, not inside the container):
+
+```bash
+echo 'net.core.rmem_max=5000000' | sudo tee /etc/sysctl.d/99-livekit.conf
+echo 'net.core.wmem_max=5000000' | sudo tee -a /etc/sysctl.d/99-livekit.conf
+sudo sysctl --system
+```
+
+After the host is tuned, recreate the container (`docker compose up -d --force-recreate livekit`) so it inherits the raised ceiling from the host network namespace.
+
+Linux-only alternative: switching the service to `network_mode: host` also lets LiveKit see the host's tuned ceiling directly — see the note next to `udp_port` in `livekit.yaml` (lines 17–20). This is an orthogonal performance choice; tuning the host sysctl above is sufficient on its own.
+
+Docker Desktop on macOS caveat: the WARN is **cosmetic in development** — at small participant counts there is no measurable media-quality impact. Running `sudo sysctl -w net.core.rmem_max=...` on the macOS host is *ineffective* because the container runs against Docker Desktop's LinuxKit VM kernel, not Darwin; the Darwin sysctl namespace is unrelated. If you do need to raise the LinuxKit VM ceiling, the only supported path is Docker Desktop → Settings → Resources (non-declarative; intentionally not codified in this repo).
+
+Verification (after Linux host tuning + container recreate):
+
+```bash
+docker compose exec livekit sysctl net.core.rmem_max
+```
+
+Expected output is `5000000` on a tuned Linux host. On macOS Docker Desktop, or any untuned host, the original low value (commonly `425984`) is the expected output and the WARN line will remain in `docker compose logs livekit`.
+
 ## Security hardening checklist
 
 - [ ] `.env` exists with mode `600` and is **never** committed (covered by `.gitignore`).
