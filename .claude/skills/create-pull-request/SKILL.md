@@ -17,102 +17,12 @@ Produces a fully filled pull request / merge request description by discovering 
 
 ## Procedure
 
-### Step 1 — Detect the Remote Platform
-
-Run the following and inspect the remote URL to determine the platform:
-
-```bash
-git remote get-url origin
-```
-
-| URL pattern                        | Platform                       |
-| ---------------------------------- | ------------------------------ |
-| `github.com`                       | GitHub                         |
-| `gitlab.com` or self-hosted GitLab | GitLab                         |
-| `bitbucket.org`                    | Bitbucket                      |
-| Other / unknown                    | Generic (use default template) |
-
----
-
-### Step 2 — Find the PR Template
-
-Search for a template based on the detected platform:
-
-| Platform      | Template location(s)                                                     |
-| ------------- | ------------------------------------------------------------------------ |
-| **GitHub**    | `.github/pull_request_template.md`, `.github/PULL_REQUEST_TEMPLATE/*.md` |
-| **GitLab**    | `.gitlab/merge_request_templates/*.md`                                   |
-| **Bitbucket** | `.bitbucket/pull_request_template.md`                                    |
-
-**Rules:**
-
-- If **exactly one** template is found → use it automatically.
-- If **more than one** template is found → ask the user to pick one before continuing.
-- If **no template** is found → use the default: [references/pull-request-template.md](./references/pull-request-template.md).
-
----
-
-### Step 3 — Determine Target Branch
-
-Run the following to list all branches:
-
-```bash
-git branch -a
-```
-
-Ask the user: _"Which branch should this PR target (merge into)?"_ and wait for their answer. Use the chosen branch as `<target-branch>` in all subsequent steps.
-
----
-
-### Step 4 — Gather Context
-
-Collect all available context to fill the template. Use whatever is provided:
-
-| Source                | How to collect                                                                         |
-| --------------------- | -------------------------------------------------------------------------------------- |
-| **Git changes**       | `git diff <target-branch>...HEAD`; also `git log <target-branch>...HEAD --oneline`     |
-| **User input**        | The argument passed when invoking this skill (ticket URL, requirement text, plan link) |
-| **Plan / design doc** | Read any linked `.md` planning files in the workspace                                  |
-| **Ticket**            | If a URL is provided, fetch the ticket content                                         |
-
----
-
-### Step 5 — Fill the Template
-
-Using the collected context, fill every section of the chosen template:
-
-- **Description**: Summarize _what_ and _why_ in plain language.
-- **Type of Change**: Check the most appropriate box(es).
-- **Changes Made**: List concrete changes derived from the git diff / plan.
-- **How to Test**: Write actionable steps a reviewer can follow.
-- **Checklist**: Check items that are verifiably satisfied; leave unchecked items for the developer to confirm.
-- **Related Issues**: Insert ticket/issue references (e.g., `Closes #123`).
-- **Screenshots**: Note if screenshots are not applicable, or prompt the user to add them.
-
-Do **not** leave placeholder comments unfilled if the context is sufficient to answer them.
-
----
-
-### Step 6 — Submit or Return
-
-Check whether an MCP integration is available for the detected platform:
-
-| Platform  | MCP tool to check                                                  |
-| --------- | ------------------------------------------------------------------ |
-| GitHub    | `github-pull-request_create_pull_request` or equivalent GitHub MCP |
-| GitLab    | GitLab MCP (merge request creation tool)                           |
-| Bitbucket | Bitbucket MCP (pull request creation tool)                         |
-
-**If MCP is available:**
-
-1. Show the user the filled template for review.
-2. Ask: _"Should I create this pull request now using the [Platform] integration?"_
-3. If confirmed, invoke the MCP tool to create the PR/MR targeting `<target-branch>` with the filled description.
-4. Report the PR/MR URL back to the user.
-
-**If MCP is not available:**
-
-- Return the fully filled PR description as a fenced Markdown block so the user can copy-paste it directly into their platform.
+1. [Step 1 — Detect the Remote Platform](./references/step-1-detect-platform.md)
+2. [Step 2 — Find the PR Template](./references/step-2-find-template.md)
+3. [Step 3 — Determine Target Branch](./references/step-3-determine-target-branch.md)
+4. [Step 4 — Gather Context](./references/step-4-gather-context.md)
+5. [Step 5 — Fill the Template](./references/step-5-fill-template.md)
+6. [Step 6 — Submit or Return](./references/step-6-submit-or-return.md)
 
 ---
 

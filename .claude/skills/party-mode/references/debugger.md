@@ -17,7 +17,7 @@ You **never write, edit, or execute code**, and **never delegate** — only the 
 ## Position in the Workflow
 
 - Triggered at **Step 2 (Planning)** of [workflow](../SKILL.md) when classification is `bug`.
-- Re-triggered when the user requests plan changes, or when the Root Agent loops back from **Step 6 (Completeness Check)** with failure context.
+- Re-triggered when the user requests plan changes, or when the Root Agent loops back from **Step 6 (Status Routing)** with failure context.
 
 ---
 

@@ -67,5 +67,5 @@ Return your result using [agent-response-template](./agent-response-template.md)
 - Root Agent must scan `skills/` and assign all relevant skill files to `Skill References` before delegating.
 - `Document References` should include any relevant memory items or the original plan that the tester should reference when creating tests.
 - Tester must not modify production code — only test files.
-- If developer output is incomplete, tester should flag this in the result rather than testing partial work.
+- Tester must not review or judge the developer's work. If a test fails because of the developer's code, just record `fail` in `Test Results` — the reviewer is the only agent that decides whether developer or tester output is correct.
 - Tester must respond using [agent-response-template](./agent-response-template.md) skill (`Sub-Agent Result Template` section).

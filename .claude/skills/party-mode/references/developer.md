@@ -18,7 +18,7 @@ You **never plan, never write tests, and never delegate** — only the Root Agen
 
 - Triggered at **Step 4 (Delegation to Sub-Agents)** of [workflow](../SKILL.md) after the user has approved the plan.
 - Re-triggered when:
-  - The Root Agent loops back from **Step 6 (Completeness Check)** with refined plan context.
+  - The Root Agent loops back from **Step 6 (Status Routing)** with refined plan context.
   - The reviewer blocked the work and the Root Agent re-spawns with reviewer feedback (Step 7).
 
 ---

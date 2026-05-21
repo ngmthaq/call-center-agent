@@ -2,15 +2,15 @@
 
 ---
 
-- **Project Name**: `Agent Assistant`
-- **Project Description**: `Voice Call Agent Assistant — a configurable AI assistant for voice/phone interactions, with reusable Claude Code agents, skills, and document templates.`
+- **Project Name**: `My Copilot`
+- **Project Description**: `A curated collection of AI copilot customization files — agents, skills, and document templates.`
 - **Programming Languages**: `N/A`
 - **Frameworks**: `N/A`
 - **Package Managers**: `N/A`
 - **Key Libraries**: `N/A`
 - **Database**: `N/A`
-- **Doc Directory**: `.claude/docs/`
-- **Testing Workflow**: `Skip-Testing` <!-- Code-First | Test-First | Skip-Testing -->
+- **Doc Directory**: `<workspace>/<target>/docs`
+- **Testing Workflow**: `Code-First` <!-- Code-First | Test-First | Skip-Testing -->
 - **Playwright Check**: `Ask-User` <!-- Always | None | Ask-User -->
 
 > Note: DO NOT edit the checklist template above.
