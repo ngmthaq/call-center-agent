@@ -116,6 +116,9 @@ importers:
       http-errors:
         specifier: ^2.0.0
         version: 2.0.1
+      livekit-server-sdk:
+        specifier: ^2.15.3
+        version: 2.15.3
       morgan:
         specifier: ^1.10.0
         version: 1.10.1
