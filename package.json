@@ -6,7 +6,9 @@
   "scripts": {
     "livekit-agent": "pnpm --filter livekit-agent $*",
     "livekit-server": "pnpm --filter livekit-server $*",
-    "livekit-client": "pnpm --filter livekit-client $*"
+    "livekit-client": "pnpm --filter livekit-client $*",
+    "livekit-infra": "pnpm --filter livekit-infra $*",
+    "infra:dev": "cd infra && docker compose -f docker-compose.development.yml --env-file .env.development up -d"
   },
   "engines": {
     "node": ">=22.0.0",

@@ -1,8 +1,11 @@
 import dotenv from 'dotenv';
+import path from 'path';
 import { createApp } from './app';
-import { config } from './config/env';
+import { config, loadConfig } from './config/env';
 
-dotenv.config({ path: '.env.local' });
+dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
+
+loadConfig();
 
 const app = createApp();
 

@@ -1,0 +1,119 @@
+# LiveKit Self-Hosted Stack
+#
+# Services:
+#   nginx         - Reverse proxy (SNI passthrough on 443, ACME on 80)    — bridge network
+#   livekit       - LiveKit server                                        — host network
+#   redis-livekit - Redis dedicated to LiveKit message bus                — host network
+#   ingress       - LiveKit Ingress (RTMP/WHIP)                           — host network
+#   postgres      - PostgreSQL for the call-center-agent app              — bridge network
+#   redis-app     - Redis for the call-center-agent app                   — bridge network
+#
+# NOTE: network_mode: host is Linux-only. Not supported on Docker Desktop for Mac/Windows.
+
+services:
+  # ---------------------------------------------------------------------------
+  # Nginx — SNI passthrough reverse proxy
+  # ---------------------------------------------------------------------------
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      # Mount only the specific config file — do NOT mount ./nginx:/etc/nginx as that
+      # would shadow the entire /etc/nginx directory, losing mime.types and modules/.
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      # Certbot webroot for HTTP-01 ACME challenges
+      - ./certbot/www:/var/www/certbot:ro
+      # TLS certificates issued by Certbot (read-only inside container)
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    extra_hosts:
+      # Allows Nginx to reach host-network services (livekit, ingress, redis-livekit)
+      - 'host-gateway:host-gateway'
+    depends_on:
+      - livekit
+      - ingress
+
+  # ---------------------------------------------------------------------------
+  # LiveKit Server
+  # ---------------------------------------------------------------------------
+  livekit:
+    image: livekit/livekit-server:v1.8
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ./livekit.yaml:/livekit.yaml:ro
+      # TLS certificates for TURN — see livekit.yaml turn section for cert_file/key_file paths
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    command: --config /livekit.yaml
+    environment:
+      - LIVEKIT_API_KEY=${LIVEKIT_API_KEY}
+      - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET}
+      - LIVEKIT_DOMAIN=${LIVEKIT_DOMAIN}
+      - LIVEKIT_TURN_DOMAIN=${LIVEKIT_TURN_DOMAIN}
+      - LIVEKIT_WHIP_DOMAIN=${LIVEKIT_WHIP_DOMAIN}
+    depends_on:
+      - redis-livekit
+
+  # ---------------------------------------------------------------------------
+  # Redis — LiveKit dedicated message bus (host network, loopback only)
+  # ---------------------------------------------------------------------------
+  redis-livekit:
+    image: redis:7-alpine
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ./redis-livekit.conf:/etc/redis/redis.conf:ro
+    command: redis-server /etc/redis/redis.conf
+
+  # ---------------------------------------------------------------------------
+  # LiveKit Ingress — RTMP / WHIP media ingest
+  # ---------------------------------------------------------------------------
+  ingress:
+    image: livekit/ingress:v1.4
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ./ingress.yaml:/ingress.yaml:ro
+    command: --config /ingress.yaml
+    environment:
+      - LIVEKIT_API_KEY=${LIVEKIT_API_KEY}
+      - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET}
+      - LIVEKIT_DOMAIN=${LIVEKIT_DOMAIN}
+    depends_on:
+      - redis-livekit
+      - livekit
+
+  # ---------------------------------------------------------------------------
+  # PostgreSQL — Application database (bridge network, localhost only)
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    ports:
+      # Bind to loopback only so the host app can connect but the port is not
+      # publicly exposed
+      - '127.0.0.1:5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+
+  # ---------------------------------------------------------------------------
+  # Redis App — Application cache / queue (bridge network, localhost only)
+  # Exposed on host port 6380 to avoid conflict with redis-livekit (host port 6379)
+  # ---------------------------------------------------------------------------
+  redis-app:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:${REDIS_APP_PORT:-6380}:6379'
+
+# ---------------------------------------------------------------------------
+# Named volumes
+# ---------------------------------------------------------------------------
+volumes:
+  postgres_data:
