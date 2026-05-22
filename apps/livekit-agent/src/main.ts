@@ -5,7 +5,7 @@
  * LIVEKIT_URL, LIVEKIT_API_KEY, and LIVEKIT_API_SECRET when running locally
  * or self-hosting.
  *
- * Sets up a voice AI pipeline using Deepgram (STT), Cartesia (TTS), Silero
+ * Sets up a voice AI pipeline using Mistral (STT), Mistral (TTS), Silero
  * (VAD), and the LiveKit turn detector:
  *
  * - STT (Speech-to-text): agent's ears — turns user speech into text for the LLM.
@@ -28,9 +28,8 @@ import * as silero from '@livekit/agents-plugin-silero';
 import { audioEnhancement } from '@livekit/plugins-ai-coustics';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'node:url';
-import { LLMAgent } from './agents/llm';
-import { STTAgent } from './agents/stt';
-import { TTSAgent } from './agents/tts';
+import { LLMAgent } from './agents';
+import { ProviderType, providerFactory } from './agents/provider';
 import type { ProcessUserData } from './types/process-user-data';
 
 dotenv.config({ path: '.env.local' });
@@ -42,8 +41,8 @@ export default defineAgent<ProcessUserData>({
 
   entry: async (ctx) => {
     const session = new voice.AgentSession({
-      stt: STTAgent(),
-      tts: TTSAgent(),
+      stt: providerFactory.stt(ProviderType.MISTRAL),
+      tts: providerFactory.tts(ProviderType.MISTRAL),
       turnDetection: new livekit.turnDetector.MultilingualModel(),
       vad: ctx.proc.userData.vad,
       voiceOptions: {
