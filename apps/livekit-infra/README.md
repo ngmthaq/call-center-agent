@@ -9,17 +9,17 @@ This directory contains the complete Docker Compose stack for a self-hosted Live
 | Requirement                            | Notes                                                                                |
 | -------------------------------------- | ------------------------------------------------------------------------------------ |
 | Linux VM (Ubuntu 22.04+ or Debian 12+) | `network_mode: host` is Linux-only — not supported on Docker Desktop for Mac/Windows |
-| Root / sudo access                     | Required to run `init_script.sh`                                                     |
-| Docker Engine 24+                      | Installed automatically by `init_script.sh` if missing                               |
-| Docker Compose v2+ (plugin)            | Installed automatically by `init_script.sh` if missing                               |
-| Certbot                                | Installed automatically by `init_script.sh` if missing                               |
+| Root / sudo access                     | Required to install Docker, run Certbot, and manage systemd                          |
+| Docker Engine 24+                      | Install via https://docs.docker.com/engine/install/                                  |
+| Docker Compose v2+ (plugin)            | Included with Docker Engine 24+ as `docker compose`                                 |
+| Certbot                                | Install via `snap install --classic certbot` or `apt install certbot`                |
 | 2 domains pointing to the server       | See DNS Records section below                                                        |
 
 ---
 
 ## DNS Records
 
-Create the following A records with your DNS provider before running `init_script.sh`. Both must resolve to the same server IP.
+Create the following A records with your DNS provider before deploying. Both must resolve to the same server IP.
 
 | Subdomain                     | Type | Value         | Purpose                      |
 | ----------------------------- | ---- | ------------- | ---------------------------- |
@@ -76,30 +76,63 @@ nano .env   # Fill in all values: LIVEKIT_API_KEY, LIVEKIT_API_SECRET, LIVEKIT_D
 
 > **Note:** Environment variables are substituted automatically at container startup via `envsubst`. The `livekit-entrypoint.sh` script renders `livekit.template.yaml` into `livekit.yaml` inside the container before the server starts — no manual YAML editing is required.
 
-### 3. Update domain placeholders
+### 3. Obtain TLS certificates
 
-Replace every occurrence of `YOURDOMAIN.COM` in this file with your actual domain:
-
-- `init_script.sh` — `LIVEKIT_DOMAIN`, `LIVEKIT_TURN_DOMAIN` variables
-
-`LIVEKIT_DOMAIN`, `LIVEKIT_TURN_DOMAIN`, and `LIVEKIT_WEBHOOK_URL` are set in `.env` and substituted automatically at container startup — no manual config file edits are required.
-
-### 4. Run the bootstrap script
+Start Nginx first so port 80 is reachable for the ACME HTTP-01 challenge:
 
 ```bash
-chmod +x init_script.sh
-sudo ./init_script.sh
+docker compose --profile prod up -d nginx
 ```
 
-The script will:
+Then run Certbot:
 
-1. Install Docker + Docker Compose (if not already present)
-2. Install Certbot (if not already present)
-3. Copy all files to `/opt/livekit/`
-4. Start the Nginx container so port 80 is available
-5. Obtain TLS certificates for both domains via Certbot HTTP-01
-6. Add a weekly cron job to renew certificates and reload Nginx
-7. Write a systemd unit (`livekit-docker.service`) and start the full stack
+```bash
+certbot certonly \
+  --webroot \
+  --webroot-path ./certbot/www \
+  --email "$CERTBOT_EMAIL" \
+  --agree-tos \
+  --non-interactive \
+  -d livekit.YOURDOMAIN.COM \
+  -d livekit-turn.YOURDOMAIN.COM
+```
+
+Set up weekly auto-renewal with Nginx reload:
+
+```bash
+echo '0 3 * * 1 certbot renew --deploy-hook "docker compose -f /opt/livekit/docker-compose.yml exec nginx nginx -s reload" >> /var/log/certbot-renew.log 2>&1' \
+  | sudo tee /etc/cron.d/certbot-livekit
+```
+
+### 4. Start the full stack
+
+```bash
+docker compose --profile prod up -d
+```
+
+To start automatically on boot, create a systemd unit:
+
+```bash
+sudo tee /etc/systemd/system/livekit-docker.service << 'EOF'
+[Unit]
+Description=LiveKit Self-Hosted Docker Compose Stack
+After=docker.service network-online.target
+Requires=docker.service
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/livekit
+ExecStart=/usr/bin/docker compose --profile prod -f /opt/livekit/docker-compose.yml up
+ExecStop=/usr/bin/docker compose --profile prod -f /opt/livekit/docker-compose.yml down
+Restart=on-failure
+RestartSec=10s
+
+[Install]
+WantedBy=multi-user.target
+EOF
+sudo systemctl daemon-reload
+sudo systemctl enable --now livekit-docker
+```
 
 ### 5. Verify the deployment
 
@@ -128,8 +161,11 @@ docker compose build --pull
 
 # Restart with the new images (zero-downtime rolling is not guaranteed)
 docker compose --profile prod up -d --remove-orphans
+```
 
-# Alternatively, restart the systemd service
+If using the systemd unit:
+
+```bash
 sudo systemctl restart livekit-docker
 ```
 
@@ -163,7 +199,7 @@ The `livekit-entrypoint.sh` script substitutes these values into `livekit.templa
 
 ## Certificate Renewal
 
-Certbot renewal is handled by a weekly cron job written to `/etc/cron.d/certbot-livekit`. After renewal, Nginx is reloaded automatically:
+Certbot renewal is handled by the weekly cron job installed in Step 3 (`/etc/cron.d/certbot-livekit`). After renewal, Nginx is reloaded automatically:
 
 ```
 0 3 * * 1 certbot renew --deploy-hook "docker compose -f /opt/livekit/docker-compose.yml exec nginx nginx -s reload"

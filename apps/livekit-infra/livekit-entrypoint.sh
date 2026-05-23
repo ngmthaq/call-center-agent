@@ -16,4 +16,4 @@ export LIVEKIT_API_SECRET="${LIVEKIT_API_SECRET:-devsecret}"
 
 envsubst < /livekit.template.yaml > /livekit.yaml
 
-exec livekit-server --config /livekit.yaml "$@"
+exec /livekit-server --config /livekit.yaml "$@"
