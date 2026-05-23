@@ -48,12 +48,12 @@ Mount the webhook router in `app.ts` **before** `express.json()` so the raw stri
 
 ## Files in Scope
 
-| File | Action |
-|---|---|
-| `src/app.ts` | Edit — mount `webhookRouter` BEFORE `express.json()` |
-| `src/services/webhook.service.ts` | Create — `WebhookService` + `webhookService` singleton |
-| `src/controllers/webhook.controller.ts` | Create — `WebhookController` + `webhookController` singleton |
-| `src/routes/webhook.route.ts` | Create — `express.text({ type: '*/*' })` + `responseHandler(webhookController.receive)` |
+| File                                    | Action                                                                                  |
+| --------------------------------------- | --------------------------------------------------------------------------------------- |
+| `src/app.ts`                            | Edit — mount `webhookRouter` BEFORE `express.json()`                                    |
+| `src/services/webhook.service.ts`       | Create — `WebhookService` + `webhookService` singleton                                  |
+| `src/controllers/webhook.controller.ts` | Create — `WebhookController` + `webhookController` singleton                            |
+| `src/routes/webhook.route.ts`           | Create — `express.text({ type: '*/*' })` + `responseHandler(webhookController.receive)` |
 
 `src/routes/index.ts` is NOT modified.
 
@@ -71,11 +71,11 @@ Mount the webhook router in `app.ts` **before** `express.json()` so the raw stri
 
 ## Task List
 
-| # | Status | Task | Responsible Role | Dependencies | Skills |
-|---|---|---|---|---|---|
-| 1 | DONE | Create `src/services/webhook.service.ts` — `WebhookReceiver` in constructor, `receive(rawBody, authHeader)` handles `room_finished` → `deleteRoom`, silent-catch not-found | developer | — | clean-code, livekit-agents, secret-scanner |
-| 2 | DONE | Create `src/controllers/webhook.controller.ts` — `receive: RequestHandler` reads `req.body as string` + `req.headers.authorization` | developer | 1 | clean-code |
-| 3 | DONE | Create `src/routes/webhook.route.ts` — `express.text({ type: '*/*' })` then `responseHandler(webhookController.receive)` | developer | 2 | clean-code |
-| 4 | DONE | Edit `src/app.ts` — add `app.use('/webhook', webhookRouter)` immediately before `app.use(express.json())` | developer | 3 | clean-code |
-| 5 | DONE | Run typecheck + lint, fix any errors | developer | 4 | clean-code |
-| 6 | DONE | Final readback — no secrets logged, 4 files changed, `express.json()` still after webhook mount | developer | 5 | secret-scanner, clean-code |
+| #   | Status | Task                                                                                                                                                                       | Responsible Role | Dependencies | Skills                                     |
+| --- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- | ------------ | ------------------------------------------ |
+| 1   | DONE   | Create `src/services/webhook.service.ts` — `WebhookReceiver` in constructor, `receive(rawBody, authHeader)` handles `room_finished` → `deleteRoom`, silent-catch not-found | developer        | —            | clean-code, livekit-agents, secret-scanner |
+| 2   | DONE   | Create `src/controllers/webhook.controller.ts` — `receive: RequestHandler` reads `req.body as string` + `req.headers.authorization`                                        | developer        | 1            | clean-code                                 |
+| 3   | DONE   | Create `src/routes/webhook.route.ts` — `express.text({ type: '*/*' })` then `responseHandler(webhookController.receive)`                                                   | developer        | 2            | clean-code                                 |
+| 4   | DONE   | Edit `src/app.ts` — add `app.use('/webhook', webhookRouter)` immediately before `app.use(express.json())`                                                                  | developer        | 3            | clean-code                                 |
+| 5   | DONE   | Run typecheck + lint, fix any errors                                                                                                                                       | developer        | 4            | clean-code                                 |
+| 6   | DONE   | Final readback — no secrets logged, 4 files changed, `express.json()` still after webhook mount                                                                            | developer        | 5            | secret-scanner, clean-code                 |

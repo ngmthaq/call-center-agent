@@ -1,6 +1,6 @@
 {
   "name": "call-center-agent",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "Call center AI agent monorepo",
   "scripts": {
@@ -8,7 +8,8 @@
     "livekit-server": "pnpm --filter livekit-server $*",
     "livekit-client": "pnpm --filter livekit-client $*",
     "livekit-infra": "pnpm --filter livekit-infra $*",
-    "infra:dev": "cd infra && docker compose -f docker-compose.development.yml --env-file .env.development up -d"
+    "format": "prettier --write .",
+    "prepare": "husky"
   },
   "engines": {
     "node": ">=22.0.0",
@@ -23,5 +24,9 @@
   ],
   "author": "Victor Nguyen <ngmthaq.20@gmail.com>",
   "license": "ISC",
-  "packageManager": "pnpm@10.25.0"
+  "packageManager": "pnpm@10.25.0",
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "prettier": "^3.8.3"
+  }
 }
