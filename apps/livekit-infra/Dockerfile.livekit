@@ -1,0 +1,11 @@
+FROM livekit/livekit-server:v1.8
+
+# Install gettext for envsubst
+RUN apk add --no-cache gettext
+
+# Copy template and entrypoint
+COPY livekit.template.yaml /livekit.template.yaml
+COPY livekit-entrypoint.sh /livekit-entrypoint.sh
+RUN chmod +x /livekit-entrypoint.sh
+
+ENTRYPOINT ["/livekit-entrypoint.sh"]

@@ -45,13 +45,15 @@ Open the following ports in your server's firewall / security group:
 
 ## Service Inventory
 
-| Service         | Image                         | Network Mode | Exposed Port(s)                               | Purpose                                                     |
-| --------------- | ----------------------------- | ------------ | --------------------------------------------- | ----------------------------------------------------------- |
-| `nginx`         | `nginx:1.27-alpine`           | bridge       | `0.0.0.0:80`, `0.0.0.0:443`                   | SNI passthrough reverse proxy; ACME HTTP-01; HTTPS redirect |
-| `livekit`       | `livekit/livekit-server:v1.8` | host         | 7880 (HTTP/WS), 7881 (TCP), 50000-60000 (UDP) | LiveKit media server                                        |
-| `redis-livekit` | `redis:7-alpine`              | host         | 127.0.0.1:6379                                | Redis for LiveKit internal pub/sub — loopback only          |
-| `postgres`      | `postgres:16-alpine`          | bridge       | `127.0.0.1:5432`                              | PostgreSQL database for the call-center-agent application   |
-| `redis-app`     | `redis:7-alpine`              | bridge       | `127.0.0.1:6380`                              | Redis cache/queue for the call-center-agent application     |
+| Service            | Image                                          | Network Mode | Exposed Port(s)                               | Purpose                                                     |
+| ------------------ | ---------------------------------------------- | ------------ | --------------------------------------------- | ----------------------------------------------------------- |
+| `nginx`            | `Dockerfile.nginx (nginx:1.27-alpine)`          | bridge       | `0.0.0.0:80`, `0.0.0.0:443`                   | SNI passthrough reverse proxy; ACME HTTP-01; HTTPS redirect |
+| `livekit`          | `Dockerfile.livekit (livekit/livekit-server:v1.8)` | host     | 7880 (HTTP/WS), 7881 (TCP), 50000-60000 (UDP) | LiveKit media server (prod)                                 |
+| `redis-livekit`    | `Dockerfile.redis-livekit (redis:7-alpine)`    | host         | 127.0.0.1:6379                                | Redis for LiveKit internal pub/sub — loopback only (prod)   |
+| `livekit-dev`      | `Dockerfile.livekit (livekit/livekit-server:v1.8)` | bridge   | 7880, 7881                                    | LiveKit media server (dev)                                  |
+| `redis-livekit-dev`| `Dockerfile.redis-livekit (redis:7-alpine)`    | bridge       | 6379                                          | Redis for LiveKit internal pub/sub (dev)                    |
+| `postgres`         | `postgres:16-alpine`                           | bridge       | `127.0.0.1:5432`                              | PostgreSQL database for the call-center-agent application   |
+| `redis-app`        | `redis:7-alpine`                               | bridge       | `127.0.0.1:6380`                              | Redis cache/queue for the call-center-agent application     |
 
 ---
 
@@ -69,18 +71,18 @@ cd /opt/livekit-setup/
 
 ```bash
 cp .env.example .env
-nano .env   # Fill in all values: LIVEKIT_API_KEY, LIVEKIT_API_SECRET, domains, POSTGRES_*, CERTBOT_EMAIL
+nano .env   # Fill in all values: LIVEKIT_API_KEY, LIVEKIT_API_SECRET, LIVEKIT_DOMAIN, LIVEKIT_TURN_DOMAIN, LIVEKIT_USE_EXTERNAL_IP, LIVEKIT_ENABLE_LOOPBACK_CANDIDATE, LIVEKIT_TURN_ENABLED, LIVEKIT_TURN_CERT_FILE, LIVEKIT_TURN_KEY_FILE, LIVEKIT_REDIS_ADDRESS, LIVEKIT_WEBHOOK_URL, REDIS_LIVEKIT_BIND, REDIS_LIVEKIT_PORT, POSTGRES_*, CERTBOT_EMAIL, REDIS_APP_PORT
 ```
 
-> **Important — livekit.yaml keys section:** The Go YAML parser used by LiveKit does **not** expand `${VAR}` shell-style placeholders. You must manually edit the `keys:` section in `livekit.yaml` and replace `replace_this_key` and `replace_this_secret` with your actual LiveKit API key and secret. The `LIVEKIT_API_KEY` / `LIVEKIT_API_SECRET` values in `.env` are used by the CLI, but **not** automatically read by `livekit.yaml`.
+> **Note:** Environment variables are substituted automatically at container startup via `envsubst`. The `livekit-entrypoint.sh` script renders `livekit.template.yaml` into `livekit.yaml` inside the container before the server starts — no manual YAML editing is required.
 
 ### 3. Update domain placeholders
 
-Replace every occurrence of `YOURDOMAIN.COM` in these files with your actual domain:
+Replace every occurrence of `YOURDOMAIN.COM` in this file with your actual domain:
 
 - `init_script.sh` — `LIVEKIT_DOMAIN`, `LIVEKIT_TURN_DOMAIN` variables
-- `livekit.yaml` — `turn.domain` and the `keys:` placeholder values
-- `nginx/nginx.conf` — the two entries in the `map` block
+
+`LIVEKIT_DOMAIN`, `LIVEKIT_TURN_DOMAIN`, and `LIVEKIT_WEBHOOK_URL` are set in `.env` and substituted automatically at container startup — no manual config file edits are required.
 
 ### 4. Run the bootstrap script
 
@@ -103,10 +105,10 @@ The script will:
 
 ```bash
 # Check all services are running
-docker compose -f /opt/livekit/docker-compose.yml ps
+docker compose -f /opt/livekit/docker-compose.yml --profile prod ps
 
 # View logs for a specific service
-docker compose -f /opt/livekit/docker-compose.yml logs -f livekit
+docker compose -f /opt/livekit/docker-compose.yml --profile prod logs -f livekit
 
 # Test LiveKit health endpoint
 curl https://livekit.YOURDOMAIN.COM/
@@ -116,16 +118,16 @@ curl https://livekit.YOURDOMAIN.COM/
 
 ## Upgrade Instructions
 
-To pull the latest images and restart the stack:
+To rebuild with the latest base images and restart the stack:
 
 ```bash
 cd /opt/livekit
 
-# Pull latest images for all services
-docker compose pull
+# Rebuild images pulling latest base layers
+docker compose build --pull
 
 # Restart with the new images (zero-downtime rolling is not guaranteed)
-docker compose up -d --remove-orphans
+docker compose --profile prod up -d --remove-orphans
 
 # Alternatively, restart the systemd service
 sudo systemctl restart livekit-docker
@@ -147,15 +149,15 @@ Services available to the host application (call-center-agent):
 
 ## TURN TLS Certificate Configuration
 
-The `livekit` service mounts `/etc/letsencrypt` into the container (read-only). To enable TURN TLS, uncomment and set the following paths in the `turn:` section of `livekit.yaml`:
+The `livekit` service mounts `/etc/letsencrypt` into the container (read-only). To enable TURN TLS, set the following variables in `.env`:
 
-```yaml
-turn:
-  cert_file: /etc/letsencrypt/live/livekit-turn.YOURDOMAIN.COM/fullchain.pem
-  key_file: /etc/letsencrypt/live/livekit-turn.YOURDOMAIN.COM/privkey.pem
+```dotenv
+LIVEKIT_TURN_ENABLED=true
+LIVEKIT_TURN_CERT_FILE=/etc/letsencrypt/live/livekit-turn.YOURDOMAIN.COM/fullchain.pem
+LIVEKIT_TURN_KEY_FILE=/etc/letsencrypt/live/livekit-turn.YOURDOMAIN.COM/privkey.pem
 ```
 
-These paths are available inside the container because the livekit service volume mounts `/etc/letsencrypt:/etc/letsencrypt:ro`.
+The `livekit-entrypoint.sh` script substitutes these values into `livekit.template.yaml` at container startup. These paths are available inside the container because the livekit service volume mounts `/etc/letsencrypt:/etc/letsencrypt:ro`.
 
 ---
 
@@ -177,19 +179,19 @@ certbot renew --dry-run
 
 ## Troubleshooting
 
-| Problem                    | Likely Cause                                | Fix                                                                         |
-| -------------------------- | ------------------------------------------- | --------------------------------------------------------------------------- |
-| Port 80/443 not reachable  | Firewall rule missing                       | Open TCP 80 and 443 in your security group                                  |
-| Certbot HTTP-01 fails      | DNS not propagated yet or Nginx not started | Verify DNS resolves; ensure Nginx container is running                      |
-| WebRTC media does not flow | UDP ports 50000-60000 blocked               | Open UDP range in firewall                                                  |
-| `network_mode: host` error | Running on Docker Desktop                   | Deploy on a Linux host                                                      |
-| LiveKit can't reach Redis  | redis-livekit not started or wrong address  | Ensure `redis-livekit` is running; `livekit.yaml` must use `127.0.0.1:6379` |
+| Problem                    | Likely Cause                                | Fix                                                                                       |
+| -------------------------- | ------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Port 80/443 not reachable  | Firewall rule missing                       | Open TCP 80 and 443 in your security group                                                |
+| Certbot HTTP-01 fails      | DNS not propagated yet or Nginx not started | Verify DNS resolves; ensure Nginx container is running                                    |
+| WebRTC media does not flow | UDP ports 50000-60000 blocked               | Open UDP range in firewall                                                                |
+| `network_mode: host` error | Running on Docker Desktop                   | Deploy on a Linux host                                                                    |
+| LiveKit can't reach Redis  | redis-livekit not started or wrong address  | Ensure `redis-livekit` is running; `LIVEKIT_REDIS_ADDRESS` in `.env` must be `127.0.0.1:6379` for prod |
 
 ---
 
 ## Development Stack
 
-A simplified, cross-platform development stack is provided for local development. It uses bridge networking (no `network_mode: host`) so it works on macOS, Linux, and Windows with Docker Desktop or Docker Engine. No TLS, no Nginx, and no Certbot are required.
+A simplified, cross-platform development stack is included in `docker-compose.yml` under the `dev` profile. It uses bridge networking (no `network_mode: host`) so it works on macOS, Linux, and Windows with Docker Desktop or Docker Engine. No TLS, no Nginx, and no Certbot are required.
 
 ### Prerequisites
 
@@ -202,20 +204,20 @@ A simplified, cross-platform development stack is provided for local development
 ### Quickstart
 
 ```bash
-# From the infra/ directory
-docker compose -f docker-compose.development.yml --env-file .env.development up -d
+# From the apps/livekit-infra/ directory
+docker compose --profile dev up -d
 ```
 
 To stop and remove containers (data volume is preserved):
 
 ```bash
-docker compose -f docker-compose.development.yml down
+docker compose --profile dev down
 ```
 
 To stop and also remove the dev database volume:
 
 ```bash
-docker compose -f docker-compose.development.yml down -v
+docker compose --profile dev down -v
 ```
 
 ### Service Port Reference
@@ -236,10 +238,10 @@ API Key:        devkey
 API Secret:     devsecret
 ```
 
-These values match the `keys:` section in `livekit.development.yaml` and the `infra/.env.development` file.
+These values match the `keys:` section rendered from `livekit.template.yaml` using the dev values in `.env`.
 
 ### UDP Media Ports Note
 
-The LiveKit server is configured with a UDP media port range of `50000–60000`. Loopback candidates are enabled (`enable_loopback_candidate: true`), so browsers and SDK clients running **on the same machine** as Docker will connect successfully without any extra firewall configuration.
+The LiveKit server is configured with a UDP media port range of `50000–60000`. Set `LIVEKIT_ENABLE_LOOPBACK_CANDIDATE=true` in `.env` (dev default) so browsers and SDK clients running **on the same machine** as Docker will connect successfully without any extra firewall configuration.
 
-If you need to connect to the dev stack from a **remote device** (e.g., a phone on the same LAN, or a remote developer machine), open UDP ports `50000–60000` in your host firewall and ensure `use_external_ip: false` is set in `livekit.development.yaml` (it is by default). You may also need to configure `rtc.node_ip` in `livekit.development.yaml` to your machine's LAN IP for remote-device connectivity.
+If you need to connect to the dev stack from a **remote device** (e.g., a phone on the same LAN, or a remote developer machine), open UDP ports `50000–60000` in your host firewall and ensure `LIVEKIT_USE_EXTERNAL_IP=false` is set in `.env` (dev default). You may also need to configure `rtc.node_ip` in `livekit.template.yaml` to your machine's LAN IP for remote-device connectivity.

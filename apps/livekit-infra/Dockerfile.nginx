@@ -1,0 +1,11 @@
+FROM nginx:1.27-alpine
+
+# Install gettext for envsubst
+RUN apk add --no-cache gettext
+
+# Copy template and entrypoint
+COPY nginx.template.conf /nginx.template.conf
+COPY nginx-entrypoint.sh /nginx-entrypoint.sh
+RUN chmod +x /nginx-entrypoint.sh
+
+ENTRYPOINT ["/nginx-entrypoint.sh"]

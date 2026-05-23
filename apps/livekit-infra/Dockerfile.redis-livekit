@@ -1,0 +1,12 @@
+FROM redis:7-alpine
+
+# Install gettext for envsubst
+RUN apk add --no-cache gettext
+RUN mkdir -p /etc/redis
+
+# Copy template and entrypoint
+COPY redis-livekit.template.conf /redis-livekit.template.conf
+COPY redis-livekit-entrypoint.sh /redis-livekit-entrypoint.sh
+RUN chmod +x /redis-livekit-entrypoint.sh
+
+ENTRYPOINT ["/redis-livekit-entrypoint.sh"]

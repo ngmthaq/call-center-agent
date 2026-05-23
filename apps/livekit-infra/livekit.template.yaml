@@ -1,0 +1,32 @@
+# LiveKit Server Configuration
+# This file is a template. Do NOT edit directly.
+# Variable substitution is performed by livekit-entrypoint.sh at container startup.
+
+port: 7880
+
+rtc:
+  tcp_port: 7881
+  port_range_start: 50000
+  port_range_end: 60000
+  use_external_ip: ${LIVEKIT_USE_EXTERNAL_IP}
+  enable_loopback_candidate: ${LIVEKIT_ENABLE_LOOPBACK_CANDIDATE}
+
+redis:
+  address: ${LIVEKIT_REDIS_ADDRESS}
+
+turn:
+  enabled: ${LIVEKIT_TURN_ENABLED}
+  domain: ${LIVEKIT_TURN_DOMAIN}
+  tls_port: 5349
+  udp_port: 3478
+  external_tls: true
+  cert_file: ${LIVEKIT_TURN_CERT_FILE}
+  key_file: ${LIVEKIT_TURN_KEY_FILE}
+
+keys:
+  ${LIVEKIT_API_KEY}: ${LIVEKIT_API_SECRET}
+
+webhook:
+  api_key: ${LIVEKIT_API_KEY}
+  urls:
+    - ${LIVEKIT_WEBHOOK_URL}

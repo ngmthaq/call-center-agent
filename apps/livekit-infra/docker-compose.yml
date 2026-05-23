@@ -1,78 +1,109 @@
 # LiveKit Self-Hosted Stack
 #
-# Services:
-#   nginx         - Reverse proxy (SNI passthrough on 443, ACME on 80)    — bridge network
-#   livekit       - LiveKit server                                        — host network
-#   redis-livekit - Redis dedicated to LiveKit message bus                — host network
-#   postgres      - PostgreSQL for the call-center-agent app              — bridge network
-#   redis-app     - Redis for the call-center-agent app                   — bridge network
+# Usage:
+#   Development: docker compose --profile dev up -d
+#   Production:  docker compose --profile prod up -d
 #
-# NOTE: network_mode: host is Linux-only. Not supported on Docker Desktop for Mac/Windows.
+# Profiles:
+#   prod — nginx, livekit (host network), redis-livekit (host network), postgres, redis-app
+#   dev  — livekit-dev (bridge), redis-livekit-dev (bridge), postgres, redis-app
+#
+# NOTE: network_mode: host (prod livekit / redis-livekit) is Linux-only.
+#       Not supported on Docker Desktop for Mac/Windows — use --profile dev instead.
 
 services:
   # ---------------------------------------------------------------------------
-  # Nginx — SNI passthrough reverse proxy
+  # Nginx — SNI passthrough reverse proxy (prod only)
   # ---------------------------------------------------------------------------
   nginx:
-    image: nginx:1.27-alpine
+    profiles: [prod]
+    build:
+      context: .
+      dockerfile: Dockerfile.nginx
     restart: unless-stopped
+    env_file:
+      - .env
     ports:
       - '80:80'
       - '443:443'
     volumes:
-      # Mount only the specific config file — do NOT mount ./nginx:/etc/nginx as that
-      # would shadow the entire /etc/nginx directory, losing mime.types and modules/.
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      # Certbot webroot for HTTP-01 ACME challenges
       - ./certbot/www:/var/www/certbot:ro
-      # TLS certificates issued by Certbot (read-only inside container)
       - /etc/letsencrypt:/etc/letsencrypt:ro
     extra_hosts:
-      # Allows Nginx to reach host-network services (livekit, redis-livekit)
       - 'host-gateway:host-gateway'
     depends_on:
       - livekit
 
   # ---------------------------------------------------------------------------
-  # LiveKit Server
+  # LiveKit Server — production (host network)
   # ---------------------------------------------------------------------------
   livekit:
-    image: livekit/livekit-server:v1.8
+    profiles: [prod]
+    build:
+      context: .
+      dockerfile: Dockerfile.livekit
     restart: unless-stopped
     network_mode: host
+    env_file:
+      - .env
     volumes:
-      - ./livekit.yaml:/livekit.yaml:ro
-      # TLS certificates for TURN — see livekit.yaml turn section for cert_file/key_file paths
       - /etc/letsencrypt:/etc/letsencrypt:ro
-    command: --config /livekit.yaml
-    environment:
-      - LIVEKIT_API_KEY=${LIVEKIT_API_KEY}
-      - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET}
-      - LIVEKIT_DOMAIN=${LIVEKIT_DOMAIN}
-      - LIVEKIT_TURN_DOMAIN=${LIVEKIT_TURN_DOMAIN}
     depends_on:
       - redis-livekit
 
   # ---------------------------------------------------------------------------
-  # Redis — LiveKit dedicated message bus (host network, loopback only)
+  # Redis — LiveKit dedicated message bus, production (host network, loopback only)
   # ---------------------------------------------------------------------------
   redis-livekit:
-    image: redis:7-alpine
+    profiles: [prod]
+    build:
+      context: .
+      dockerfile: Dockerfile.redis-livekit
     restart: unless-stopped
     network_mode: host
-    volumes:
-      - ./redis-livekit.conf:/etc/redis/redis.conf:ro
-    command: redis-server /etc/redis/redis.conf
+    env_file:
+      - .env
 
   # ---------------------------------------------------------------------------
-  # PostgreSQL — Application database (bridge network, localhost only)
+  # LiveKit Server — development (bridge network, cross-platform)
+  # ---------------------------------------------------------------------------
+  livekit-dev:
+    profiles: [dev]
+    build:
+      context: .
+      dockerfile: Dockerfile.livekit
+    restart: unless-stopped
+    ports:
+      - '0.0.0.0:7880:7880'
+      - '0.0.0.0:7881:7881'
+    env_file:
+      - .env
+    command: --dev
+    depends_on:
+      - redis-livekit-dev
+
+  # ---------------------------------------------------------------------------
+  # Redis — LiveKit dedicated message bus, development (bridge network)
+  # ---------------------------------------------------------------------------
+  redis-livekit-dev:
+    profiles: [dev]
+    build:
+      context: .
+      dockerfile: Dockerfile.redis-livekit
+    restart: unless-stopped
+    ports:
+      - '0.0.0.0:6379:6379'
+    env_file:
+      - .env
+
+  # ---------------------------------------------------------------------------
+  # PostgreSQL — Application database (shared, bridge network)
   # ---------------------------------------------------------------------------
   postgres:
+    profiles: [dev, prod]
     image: postgres:16-alpine
     restart: unless-stopped
     ports:
-      # Bind to loopback only so the host app can connect but the port is not
-      # publicly exposed
       - '127.0.0.1:5432:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -82,17 +113,14 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
 
   # ---------------------------------------------------------------------------
-  # Redis App — Application cache / queue (bridge network, localhost only)
-  # Exposed on host port 6380 to avoid conflict with redis-livekit (host port 6379)
+  # Redis App — Application cache / queue (shared, bridge network)
   # ---------------------------------------------------------------------------
   redis-app:
+    profiles: [dev, prod]
     image: redis:7-alpine
     restart: unless-stopped
     ports:
       - '127.0.0.1:${REDIS_APP_PORT:-6380}:6379'
 
-# ---------------------------------------------------------------------------
-# Named volumes
-# ---------------------------------------------------------------------------
 volumes:
   postgres_data:
