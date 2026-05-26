@@ -12,7 +12,6 @@ import {
   useVoiceAssistant,
 } from '@livekit/components-react';
 import { CONNECTION_STATE_COLORS, CONNECTION_STATE_LABELS } from './configs';
-import { useAgentCallState } from './useAgentCallState';
 import {
   BrandIcon,
   ColumnBox,
@@ -36,6 +35,7 @@ import {
   SuccessIcon,
   TryAgainButton,
 } from './styled';
+import { useAgentCallState } from './useAgentCallState';
 
 export const HomePage = () => {
   const transcriptions = useTranscriptions();

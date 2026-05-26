@@ -24,8 +24,8 @@ services:
     env_file:
       - .env
     ports:
-      - '80:80'
-      - '443:443'
+      - '${NGINX_HTTP_PORT:-80}:80'
+      - '${NGINX_HTTPS_PORT:-443}:443'
     volumes:
       - ./certbot/www:/var/www/certbot:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro
@@ -74,9 +74,9 @@ services:
       dockerfile: Dockerfile.livekit
     restart: unless-stopped
     ports:
-      - '0.0.0.0:7880:7880'
-      - '0.0.0.0:7881:7881'
-      - '0.0.0.0:50000-50100:50000-50100/udp' # WebRTC UDP ICE media ports
+      - '0.0.0.0:${LIVEKIT_PORT:-7880}:${LIVEKIT_PORT:-7880}'
+      - '0.0.0.0:${LIVEKIT_RTC_TCP_PORT:-7881}:${LIVEKIT_RTC_TCP_PORT:-7881}'
+      - '0.0.0.0:${LIVEKIT_RTC_UDP_PORT_START:-50000}-${LIVEKIT_RTC_UDP_PORT_END:-50100}:${LIVEKIT_RTC_UDP_PORT_START:-50000}-${LIVEKIT_RTC_UDP_PORT_END:-50100}/udp' # WebRTC UDP ICE media ports
     env_file:
       - .env
     command: --dev
@@ -93,7 +93,7 @@ services:
       dockerfile: Dockerfile.redis-livekit
     restart: unless-stopped
     ports:
-      - '0.0.0.0:6379:6379'
+      - '0.0.0.0:${REDIS_LIVEKIT_PORT:-6379}:${REDIS_LIVEKIT_PORT:-6379}'
     env_file:
       - .env
 

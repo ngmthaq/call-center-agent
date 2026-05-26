@@ -90,14 +90,14 @@ call-center-agent/               ← pnpm workspace root
 
 `kebab-case.role.ts` pattern — role is mandatory:
 
-| Role       | Pattern              | Example                                   |
-| ---------- | -------------------- | ----------------------------------------- |
-| Controller | `name.controller.ts` | `livekit.controller.ts`                   |
-| Service    | `name.service.ts`    | `livekit.service.ts`                      |
-| Route      | `name.route.ts`      | `livekit.route.ts`                        |
-| Validator  | `name.validator.ts`  | `get-livekit-token.validator.ts`          |
-| Middleware | `name.middleware.ts`  | `error-handler.middleware.ts`, `not-found.middleware.ts` |
-| Utility    | `name.utils.ts`       | `livekit-token.utils.ts`, `response-handler.utils.ts`    |
+| Role       | Pattern              | Example                                                  |
+| ---------- | -------------------- | -------------------------------------------------------- |
+| Controller | `name.controller.ts` | `livekit.controller.ts`                                  |
+| Service    | `name.service.ts`    | `livekit.service.ts`                                     |
+| Route      | `name.route.ts`      | `livekit.route.ts`                                       |
+| Validator  | `name.validator.ts`  | `get-livekit-token.validator.ts`                         |
+| Middleware | `name.middleware.ts` | `error-handler.middleware.ts`, `not-found.middleware.ts` |
+| Utility    | `name.utils.ts`      | `livekit-token.utils.ts`, `response-handler.utils.ts`    |
 
 ### `livekit-client`
 

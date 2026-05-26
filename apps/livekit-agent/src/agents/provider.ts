@@ -42,7 +42,8 @@ const STT_REGISTRY = {
   [ProviderType.OPENAI]: () => new openai.STT({ model: 'whisper-1' }),
   [ProviderType.DEEPGRAM]: () => new deepgram.STT({ model: 'base' }),
   [ProviderType.ELEVEN]: () => new eleven.STT({ modelId: 'scribe_v1' }),
-  [ProviderType.MISTRAL]: () => new mistral.STT({ model: 'voxtral-mini-transcribe-realtime-2602', language: 'multi' }),
+  [ProviderType.MISTRAL]: () =>
+    new mistral.STT({ model: 'voxtral-mini-transcribe-realtime-2602', language: 'multi' }),
   [ProviderType.XAI]: () => new xai.STT(),
 } satisfies Partial<Record<ProviderType, () => unknown>>;
 
@@ -55,7 +56,8 @@ const TTS_REGISTRY = {
   [ProviderType.RESEMBLE]: () => new resemble.TTS({ model: 'chatterbox' }),
   [ProviderType.RIME]: () => new rime.TTS({ model: 'rime:luma' }),
   [ProviderType.INWORLD]: () => new inworld.TTS({ model: 'inworld:emma' }),
-  [ProviderType.MISTRAL]: () => new mistral.TTS({ model: 'voxtral-mini-tts-latest', voice: 'en_paul_neutral' }),
+  [ProviderType.MISTRAL]: () =>
+    new mistral.TTS({ model: 'voxtral-mini-tts-latest', voice: 'en_paul_neutral' }),
   [ProviderType.FISH]: () => new fish.TTS({ model: 'fish:lucy' }),
   [ProviderType.HUME]: () => new hume.TTS(),
 } satisfies Partial<Record<ProviderType, () => unknown>>;

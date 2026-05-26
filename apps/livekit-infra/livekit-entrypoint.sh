@@ -3,6 +3,10 @@ set -e
 
 # Export defaults for variables that may be unset.
 # envsubst does not support ${VAR:-default} syntax — defaults must be set here.
+export LIVEKIT_PORT="${LIVEKIT_PORT:-7880}"
+export LIVEKIT_RTC_TCP_PORT="${LIVEKIT_RTC_TCP_PORT:-7881}"
+export LIVEKIT_RTC_UDP_PORT_START="${LIVEKIT_RTC_UDP_PORT_START:-50000}"
+export LIVEKIT_RTC_UDP_PORT_END="${LIVEKIT_RTC_UDP_PORT_END:-50100}"
 export LIVEKIT_USE_EXTERNAL_IP="${LIVEKIT_USE_EXTERNAL_IP:-false}"
 export LIVEKIT_ENABLE_LOOPBACK_CANDIDATE="${LIVEKIT_ENABLE_LOOPBACK_CANDIDATE:-true}"
 export LIVEKIT_TURN_ENABLED="${LIVEKIT_TURN_ENABLED:-false}"

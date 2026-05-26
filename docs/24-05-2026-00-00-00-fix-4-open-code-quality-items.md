@@ -19,29 +19,29 @@ Add `pino` to the server, create a singleton logger utility, fix the dead async 
 
 ## Files in Scope
 
-| File | Change |
-|------|--------|
-| `apps/livekit-server/package.json` | Add `pino` to dependencies |
-| `apps/livekit-server/src/utils/logger.ts` | Create — singleton pino logger |
-| `apps/livekit-server/src/controllers/webhook.controller.ts` | Make `receive` async, remove dead try/catch |
-| `apps/livekit-server/src/services/webhook.service.ts` | Replace `console.log` with `logger.info` |
-| `apps/livekit-server/src/server.ts` | Replace `console.log` in listen callback |
-| `apps/livekit-agent/src/agents/provider.ts` | Replace 3 switch factories with registry maps |
-| `apps/livekit-client/src/components/pages/HomePage/hooks/useAgentCallState.ts` | Create — new `hooks/` subfolder + hook |
-| `apps/livekit-client/src/components/pages/HomePage/index.tsx` | Consume hook, remove inline `useMemo` derivations |
+| File                                                                           | Change                                            |
+| ------------------------------------------------------------------------------ | ------------------------------------------------- |
+| `apps/livekit-server/package.json`                                             | Add `pino` to dependencies                        |
+| `apps/livekit-server/src/utils/logger.ts`                                      | Create — singleton pino logger                    |
+| `apps/livekit-server/src/controllers/webhook.controller.ts`                    | Make `receive` async, remove dead try/catch       |
+| `apps/livekit-server/src/services/webhook.service.ts`                          | Replace `console.log` with `logger.info`          |
+| `apps/livekit-server/src/server.ts`                                            | Replace `console.log` in listen callback          |
+| `apps/livekit-agent/src/agents/provider.ts`                                    | Replace 3 switch factories with registry maps     |
+| `apps/livekit-client/src/components/pages/HomePage/hooks/useAgentCallState.ts` | Create — new `hooks/` subfolder + hook            |
+| `apps/livekit-client/src/components/pages/HomePage/index.tsx`                  | Consume hook, remove inline `useMemo` derivations |
 
 ## Task List
 
-| # | Task | Role | Depends On |
-|---|------|------|------------|
-| 1 | Add `pino` to `apps/livekit-server/package.json` + run `pnpm install --filter livekit-server` | developer | — | DONE |
-| 2 | Create `apps/livekit-server/src/utils/logger.ts` — singleton pino instance, level from `config.nodeEnv` | developer | 1 | DONE |
-| 3 | Update `webhook.service.ts` — replace `console.log` with `logger.info({ event, room }, msg)` | developer | 2 | DONE |
-| 4 | Update `webhook.controller.ts` — make `receive` async, remove dead try/catch entirely | developer | 2 | DONE |
-| 5 | Update `server.ts` — replace `console.log` in listen callback with `logger.info({ port }, msg)` | developer | 2 | DONE |
-| 6 | Refactor `provider.ts` — replace `llmFactory`, `sttFactory`, `ttsFactory` switches with `LLM_REGISTRY`, `STT_REGISTRY`, `TTS_REGISTRY` partial record maps | developer | — | DONE |
-| 7 | Create `HomePage/hooks/useAgentCallState.ts` — hook returning `agent`, `connectionState`, `isPending`, `hasFailure`, `isFinishedClean` | developer | — | DONE |
-| 8 | Update `HomePage/index.tsx` — consume `useAgentCallState`, remove `useConnectionState` + `useMemo` blocks + `ConnectionState` import | developer | 7 | DONE |
+| #   | Task                                                                                                                                                       | Role      | Depends On |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | ---------- | ---- |
+| 1   | Add `pino` to `apps/livekit-server/package.json` + run `pnpm install --filter livekit-server`                                                              | developer | —          | DONE |
+| 2   | Create `apps/livekit-server/src/utils/logger.ts` — singleton pino instance, level from `config.nodeEnv`                                                    | developer | 1          | DONE |
+| 3   | Update `webhook.service.ts` — replace `console.log` with `logger.info({ event, room }, msg)`                                                               | developer | 2          | DONE |
+| 4   | Update `webhook.controller.ts` — make `receive` async, remove dead try/catch entirely                                                                      | developer | 2          | DONE |
+| 5   | Update `server.ts` — replace `console.log` in listen callback with `logger.info({ port }, msg)`                                                            | developer | 2          | DONE |
+| 6   | Refactor `provider.ts` — replace `llmFactory`, `sttFactory`, `ttsFactory` switches with `LLM_REGISTRY`, `STT_REGISTRY`, `TTS_REGISTRY` partial record maps | developer | —          | DONE |
+| 7   | Create `HomePage/hooks/useAgentCallState.ts` — hook returning `agent`, `connectionState`, `isPending`, `hasFailure`, `isFinishedClean`                     | developer | —          | DONE |
+| 8   | Update `HomePage/index.tsx` — consume `useAgentCallState`, remove `useConnectionState` + `useMemo` blocks + `ConnectionState` import                       | developer | 7          | DONE |
 
 ## Risks & Assumptions
 
